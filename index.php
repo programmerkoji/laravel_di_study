@@ -1,9 +1,12 @@
 <?php
 
 require './Container.php';
+require './Logger.php';
 
 $containter = new Container;
-$containter->set('config', ['app_name' => 'Mini App']);
-$config = $containter->get('config');
+$containter->bind('logger', function($c) {
+	return new Logger('tmp/log.txt');
+});
+$logger = $containter->make('logger');
 
-var_dump($config);
+var_dump($logger);
