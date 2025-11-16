@@ -6,24 +6,33 @@ class Container
 
 	protected array $instances = [];
 
-	public function bind(string $abstract, callable $factory)
+	public function bind(string $abstract, string|callable $concrete)
 	{
-		$this->bindings[$abstract] = $factory;
+		$this->bindings[$abstract] = $concrete;
 	}
 
-	public function make(string $class)
+	public function make(string $abstract)
 	{
-		// クロージャバインド
-		if (isset($this->bindings[$class])) {
-			return $this->bindings[$class]($this);
+		// ---- ★ ① バインドに callable が入っている場合（Closure） ----
+		if (isset($this->bindings[$abstract]) && is_callable($this->bindings[$abstract])) {
+			return $this->bindings[$abstract]($this);
 		}
 
-		// Reflectionでコンストラクタの依存を読む
-		$reflector = new ReflectionClass($class);
+		// ---- ★ ② バインドに class-string が入っている場合 → 実装クラスに差し替え ----
+		if (isset($this->bindings[$abstract]) && is_string($this->bindings[$abstract])) {
+            $abstract = $this->bindings[$abstract];
+        }
+
+		// ---- ★ ③ auto-wiring（Reflection） ----
+		$reflector = new ReflectionClass($abstract);
+
+		if (!$reflector->isInstantiable()) {
+            throw new Exception("Cannot instantiate {$abstract}");
+        }
 
 		// 引数なし
 		if (! $constructor = $reflector->getConstructor()) {
-			return new $class;
+			return new $abstract;
 		}
 
 		$params = [];
@@ -44,12 +53,12 @@ class Container
 		$this->instances[$abstract] = null;
 		$this->bindings[$abstract] = function($c) use ($factory, $abstract) {
 			// すでに作ってあればそれを返す
-			if ($this->instances[$abstract] !== null) {
-				return $this->instances[$abstract];
+			if ($c->instances[$abstract] !== null) {
+				return $c->instances[$abstract];
 			}
 
 			// 初回生成
-			return $this->instances[$abstract] = $factory($c);
+			return $c->instances[$abstract] = $factory($c);
 		};
 	}
 }
