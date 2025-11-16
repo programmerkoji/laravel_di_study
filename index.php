@@ -11,4 +11,10 @@ class UserService {
 }
 
 $userService = $containter->make(UserService::class);
-var_dump($userService);
+
+$containter->singleton('config', fn() => ['name' => 'Mini App']);
+
+$config1 = $containter->make('config');
+$config2 = $containter->make('config');
+
+var_dump($config1 === $config2);

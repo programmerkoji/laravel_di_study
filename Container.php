@@ -4,6 +4,8 @@ class Container
 {
 	protected array $bindings = [];
 
+	protected array $instances = [];
+
 	public function bind(string $abstract, callable $factory)
 	{
 		$this->bindings[$abstract] = $factory;
@@ -35,5 +37,19 @@ class Container
 		}
 
 		return $reflector->newInstanceArgs($params);
+	}
+
+	public function singleton(string $abstract, callable $factory)
+	{
+		$this->instances[$abstract] = null;
+		$this->bindings[$abstract] = function($c) use ($factory, $abstract) {
+			// すでに作ってあればそれを返す
+			if ($this->instances[$abstract] !== null) {
+				return $this->instances[$abstract];
+			}
+
+			// 初回生成
+			return $this->instances[$abstract] = $factory($c);
+		};
 	}
 }
