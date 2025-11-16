@@ -4,9 +4,11 @@ require './Container.php';
 require './Logger.php';
 
 $containter = new Container;
-$containter->bind('logger', function($c) {
-	return new Logger('tmp/log.txt');
-});
-$logger = $containter->make('logger');
 
-var_dump($logger);
+class Mailer {}
+class UserService {
+	public function __construct(Mailer $mailer){}
+}
+
+$userService = $containter->make(UserService::class);
+var_dump($userService);

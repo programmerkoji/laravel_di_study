@@ -9,11 +9,31 @@ class Container
 		$this->bindings[$abstract] = $factory;
 	}
 
-	public function make(string $abstract)
+	public function make(string $class)
 	{
-		if (! isset($this->bindings[$abstract])) {
-			throw new Exception("No binding for {$abstract}");
+		// クロージャバインド
+		if (isset($this->bindings[$class])) {
+			return $this->bindings[$class]($this);
 		}
-		return $this->bindings[$abstract]($this);
+
+		// Reflectionでコンストラクタの依存を読む
+		$reflector = new ReflectionClass($class);
+
+		// 引数なし
+		if (! $constructor = $reflector->getConstructor()) {
+			return new $class;
+		}
+
+		$params = [];
+		foreach ($constructor->getParameters() as $param) {
+			$paramType = $param->getType();
+
+			// 依存クラスの型を取得して再帰的にmakeする
+			if ($paramType && ! $paramType->isBuiltin()) {
+				$params[] = $this->make($paramType->getName());
+			}
+		}
+
+		return $reflector->newInstanceArgs($params);
 	}
 }
